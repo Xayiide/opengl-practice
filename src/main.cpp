@@ -4,9 +4,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp> /* mates 3D */
-
-using namespace glm; /* en lugar de glm3::vec3, sólo vec3 */
+#include <glm/gtc/matrix_transform.hpp> /* GLM TCT Transformación matrices */
+#include <glm/glm.hpp>                  /* mates 3D */
 
 #include "shader.hpp"
 
@@ -16,11 +15,16 @@ int main()
     GLuint      VertexArrayID;
     GLuint      vertexbuffer;
     GLuint      programID;
+    GLuint      matrixID;
+    glm::mat4   Projection;
+    glm::mat4   View;
+    glm::mat4   Model;
+    glm::mat4   MVP;
 
     static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 0.0f, /* */
-         1.0f, -1.0f, 0.0f, /* */
-         0.0f,  1.0f, 0.0f, /* */
+        -1.0f, -1.0f, 0.0f, /* esquina inferior izquierda */
+         1.0f, -1.0f, 0.0f, /* esquina inferior derecha   */
+         0.0f,  1.0f, 0.0f, /* centro superior            */
     };
 
     if (glfwInit() == GL_FALSE) {
@@ -67,6 +71,30 @@ int main()
     programID = LoadShaders("vertexShader.glsl",
                             "fragmentShader.glsl");
 
+    /* Model View Projection */
+    matrixID = glGetUniformLocation(programID, "MVP");
+
+    /* Matriz de proyección: 45º campo visión, ratio 4:3, rango: 0.1 - 100 u */
+    Projection = glm::perspective(glm::radians(45.0f),
+                                  4.0f / 3.0f,
+                                  0.1f,
+                                  100.0f);
+    /* Para cámara ortogonal (en coordenadas mundo): */
+    /* glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f) */
+
+    /* Matriz de la cámara */
+    View = glm::lookAt(
+        glm::vec3(4, 3, 3), /* Cámara en (4, 3, 3) en espacio Mundo   */
+        glm::vec3(0, 0, 0), /* Mirando al origen                      */
+        glm::vec3(0, 1, 0)  /* La cabeza está recta. -1 es boac abajo */
+    );
+
+    /* Matriz modelo */
+    Model = glm::mat4(1.0f);
+
+    /* Model View Projection */
+    MVP = Projection * View * Model;
+
     /* "Damos" el triángulo a OpenGL */
     /* Genera 1 buffer y pone el identificador en vertexbuffer */
     glGenBuffers(1, &vertexbuffer);
@@ -78,10 +106,13 @@ int main()
 
 
     do {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* Limpia la pantalla */
+        glClear(GL_COLOR_BUFFER_BIT); /* Limpia la pantalla */
 
         /* Usa nuestro shader */
         glUseProgram(programID);
+
+        /* Manda nuestra transformación al shader actual */
+        glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);

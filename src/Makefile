@@ -1,5 +1,5 @@
 CC     = g++
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -Wextra -Wpedantic
 LFLAGS = -lglfw3 -lGLEW -lGLU -lGL -lm -lX11 -lpthread -lXi -lXrandr -ldl
 
 .PHONY: all clean re run
